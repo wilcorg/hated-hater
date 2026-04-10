@@ -10,8 +10,17 @@ cd hated-hater && \
 cat > .git/hooks/pre-commit <<'EOF'
 #!/usr/bin/env sh
 set -e
-uv run ruff check .
-uv run ruff format --check .
+
+STAGED_PYTHON_FILES=".git/.staged-python-files"
+git diff --cached --name-only --diff-filter=ACMR -z -- '*.py' '*.pyi' '*.ipynb' > "$STAGED_PYTHON_FILES"
+
+if [ -s "$STAGED_PYTHON_FILES" ]; then
+  xargs -0 uv run ruff check --fix < "$STAGED_PYTHON_FILES"
+  xargs -0 uv run ruff format < "$STAGED_PYTHON_FILES"
+  xargs -0 git add -- < "$STAGED_PYTHON_FILES"
+fi
+
+rm -f "$STAGED_PYTHON_FILES"
 EOF
 chmod +x .git/hooks/pre-commit
 ```
